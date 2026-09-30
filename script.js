@@ -1,16 +1,17 @@
-// CONFIGURAÇÃO DO SUPABASE
-// Acesse o painel do Supabase -> Settings -> API para pegar esses dados
+// Importação direta do Supabase JS Client como Módulo ES
+import { createClient } from 'https://jsdelivr.net'
+
+// SUAS CREDENCIAIS CONFIGURADAS
 const SUPABASE_URL = 'https://ecwysqwvprjqrioiyooe.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_q6ADp26QiLGrPMKy2DARtg_m1sFNWpQ';
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const clientSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Elementos DOM
 const formProduto = document.getElementById('form-produto');
 const formVenda = document.getElementById('form-venda');
 const selectVendaProduto = document.getElementById('venda-produto');
 
-// Variáveis globais para armazenar o estado local após puxar do banco
 let bancoProdutos = [];
 let bancoVendas = [];
 
@@ -24,15 +25,15 @@ formProduto.addEventListener('submit', async function(e) {
 
     if (id) {
         // UPDATE no Supabase
-        const { error } = await supabase
+        const { error } = await clientSupabase
             .from('produtos')
             .update({ nome, preco })
             .eq('id', id);
         
         if (error) alert("Erro ao atualizar produto: " + error.message);
     } else {
-        // INSERT no Supabase (O id é gerado de forma automática pelo banco)
-        const { error } = await supabase
+        // INSERT no Supabase
+        const { error } = await clientSupabase
             .from('produtos')
             .insert([{ nome, preco }]);
             
@@ -41,18 +42,17 @@ formProduto.addEventListener('submit', async function(e) {
 
     formProduto.reset();
     document.getElementById('prod-id').value = '';
-    buscarDadosDoBanco(); // Recarrega os dados atualizados do banco remoto
+    buscarDadosDoBanco();
 });
 
 async function deletarProduto(id) {
-    // Tenta deletar diretamente. Se houver erro de FK (vendas vinculadas), o PostgreSQL bloqueará automático
-    const { error } = await supabase
+    const { error } = await clientSupabase
         .from('produtos')
         .delete()
         .eq('id', id);
 
     if (error) {
-        if (error.code === '23503') { // Código do Postgres para violação de chave estrangeira
+        if (error.code === '23503') { 
             alert("Erro de Chave Estrangeira (FK): Não é possível deletar este lanche pois ele possui vendas registradas!");
         } else {
             alert("Erro ao deletar: " + error.message);
@@ -71,6 +71,10 @@ function carregarProdutoParaEdicao(id) {
     }
 }
 
+// Expõe as funções para o HTML já que estamos rodando em modo Módulo ES
+window.deletarProduto = deletarProduto;
+window.carregarProdutoParaEdicao = carregarProdutoParaEdicao;
+
 // --- OPERAÇÕES DA TABELA VENDAS (CRUD) ---
 
 formVenda.addEventListener('submit', async function(e) {
@@ -78,8 +82,7 @@ formVenda.addEventListener('submit', async function(e) {
     const produtoId = parseInt(selectVendaProduto.value);
     const qtd = parseInt(document.getElementById('venda-qtd').value);
 
-    // INSERT na tabela de vendas do Supabase
-    const { error } = await supabase
+    const { error } = await clientSupabase
         .from('vendas')
         .insert([{ produto_id: produtoId, quantidade: qtd }]);
 
@@ -92,7 +95,7 @@ formVenda.addEventListener('submit', async function(e) {
 });
 
 async function deletarVenda(id) {
-    const { error } = await supabase
+    const { error } = await clientSupabase
         .from('vendas')
         .delete()
         .eq('id', id);
@@ -104,18 +107,19 @@ async function deletarVenda(id) {
     }
 }
 
-// --- CONSULTAS E RENDERIZAÇÃO DA INTERFACE (SELECT E INNER JOIN) ---
+window.deletarVenda = deletarVenda;
 
-// Função principal que substitui a antiga "salvarEAtualizar"
+// --- CONSULTAS E RENDERIZAÇÃO DA INTERFACE ---
+
 async function buscarDadosDoBanco() {
-    // 1. SELECT * FROM produtos ORDER BY id ASC
-    const { data: produtos, error: errProd } = await supabase
+    // Busca produtos do banco remoto
+    const { data: produtos, error: errProd } = await clientSupabase
         .from('produtos')
         .select('*')
         .order('id', { ascending: true });
 
-    // 2. SELECT * FROM vendas ORDER BY id DESC
-    const { data: vendas, error: errVendas } = await supabase
+    // Busca vendas do banco remoto
+    const { data: vendas, error: errVendas } = await clientSupabase
         .from('vendas')
         .select('*')
         .order('id', { ascending: false });
@@ -125,7 +129,6 @@ async function buscarDadosDoBanco() {
         return;
     }
 
-    // Atualiza o estado das nossas listas na memória
     bancoProdutos = produtos || [];
     bancoVendas = vendas || [];
 
@@ -157,7 +160,6 @@ function renderizarVendas() {
     tbody.innerHTML = '';
     
     bancoVendas.forEach(v => {
-        // Resolvemos o INNER JOIN programaticamente associando a chave estrangeira v.produto_id com o lanche correspondente
         const produto = bancoProdutos.find(p => p.id === v.produto_id);
         const nomeProduto = produto ? produto.nome : "Produto Excluído";
         const precoProduto = produto ? parseFloat(produto.preco) : 0;
@@ -184,5 +186,5 @@ function atualizarSelectProdutos() {
     });
 }
 
-// Inicializa a página buscando as informações em tempo real no banco de dados
+// Inicializa buscando os dados assim que o script carrega
 buscarDadosDoBanco();
