@@ -1,8 +1,8 @@
-// CONFIGURAÇÃO DO SUPABASE (Usando suas credenciais fornecidas)
-const SUPABASE_URL = 'https://ecwysqwvprjqrioiyooe.supabase.co';
+// CONFIGURAÇÃO DO SUPABASE (Com as suas chaves reais)
+const SUPABASE_URL = 'https://supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_q6ADp26QiLGrPMKy2DARtg_m1sFNWpQ';
 
-// Inicialização segura usando a biblioteca global da CDN
+// Inicialização segura usando a biblioteca global da CDN do HTML
 const { createClient } = supabase;
 const clientSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -23,6 +23,7 @@ formProduto.addEventListener('submit', async function(e) {
     const preco = parseFloat(document.getElementById('prod-preco').value);
 
     if (id) {
+        // UPDATE no Supabase
         const { error } = await clientSupabase
             .from('produtos')
             .update({ nome, preco })
@@ -30,6 +31,7 @@ formProduto.addEventListener('submit', async function(e) {
         
         if (error) alert("Erro ao atualizar produto: " + error.message);
     } else {
+        // INSERT no Supabase
         const { error } = await clientSupabase
             .from('produtos')
             .insert([{ nome, preco }]);
@@ -68,7 +70,7 @@ function carregarProdutoParaEdicao(id) {
     }
 }
 
-// Expõe as funções para os botões do HTML funcionarem corretamente
+// Expõe as funções para os botões do HTML (onclick) funcionarem fora do escopo local
 window.deletarProduto = deletarProduto;
 window.carregarProdutoParaEdicao = carregarProdutoParaEdicao;
 
@@ -81,7 +83,7 @@ formVenda.addEventListener('submit', async function(e) {
 
     const { error } = await clientSupabase
         .from('vendas')
-        .insert([{ produto_id: produtoId, quantity: qtd }]); // Altere para 'quantidade' caso sua coluna use esse nome
+        .insert([{ produto_id: produtoId, quantidade: qtd }]);
 
     if (error) {
         alert("Erro ao registrar venda: " + error.message);
@@ -109,28 +111,26 @@ window.deletarVenda = deletarVenda;
 // --- CONSULTAS E RENDERIZAÇÃO DA INTERFACE ---
 
 async function buscarDadosDoBanco() {
-    console.log("Tentando conectar ao Supabase...");
-    
-    // 1. Busca produtos
+    // 1. Busca produtos cadastrados
     const { data: produtos, error: errProd } = await clientSupabase
         .from('produtos')
         .select('*')
         .order('id', { ascending: true });
 
-    // 2. Busca vendas
+    // 2. Busca histórico de vendas
     const { data: vendas, error: errVendas } = await clientSupabase
         .from('vendas')
         .select('*')
         .order('id', { ascending: false });
 
-    // CAPTURA DE ERRO EXPLICITA: Se falhar, vai subir um alerta detalhado na tela
+    // Se falhar, avisa na tela o motivo do banco de dados
     if (errProd) {
-        alert(`Erro na Tabela Produtos: \nMensagem: ${errProd.message} \nCódigo: ${errProd.code}`);
-        console.error("Erro Produtos:", errProd);
+        alert(`Erro ao ler tabela 'produtos': \nMensagem: ${errProd.message}`);
         return;
     }
     if (errVendas) {
-        console.error("Erro Vendas:", errVendas);
+        alert(`Erro ao ler tabela 'vendas': \nMensagem: ${errVendas.message}`);
+        return;
     }
 
     bancoProdutos = produtos || [];
@@ -167,16 +167,13 @@ function renderizarVendas() {
         const produto = bancoProdutos.find(p => p.id === v.produto_id);
         const nomeProduto = produto ? produto.nome : "Produto Excluído";
         const precoProduto = produto ? parseFloat(produto.preco) : 0;
-        
-        // Verifica se o campo do Supabase chama 'quantidade' ou 'quantity'
-        const qtdVal = v.quantidade || v.quantity || 0;
-        const total = precoProduto * qtdVal;
+        const total = precoProduto * v.quantidade;
 
         tbody.innerHTML += `
             <tr>
                 <td><strong>${v.id}</strong></td>
                 <td>${nomeProduto} (ID: ${v.produto_id})</td>
-                <td>${qtdVal}x</td>
+                <td>${v.quantidade}x</td>
                 <td>R$ ${total.toFixed(2)}</td>
                 <td>
                     <button class="btn btn-danger" onclick="deletarVenda(${v.id})">Excluir</button>
@@ -199,5 +196,5 @@ function atualizarSelectProdutos() {
     });
 }
 
-// Executa a busca assim que o site carrega
+// Inicializa buscando os dados remotamente assim que o site carrega
 buscarDadosDoBanco();
