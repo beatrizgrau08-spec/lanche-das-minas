@@ -1,162 +1,183 @@
 :root {
-    --primary-color: #e63946;
-    --secondary-color: #457b9d;
-    --success-color: #2a9d8f;
-    --dark-color: #1d3557;
-    --light-color: #f1faee;
+    --primary-color: #ffbe0b; /* Dourado / Amarelo Lanche */
+    --accent-color: #fb5607;  /* Laranja / Vermelho Intenso */
+    --dark-bg: #11141a;       /* Fundo Premium Escuro */
+    --card-bg: #1b2028;       /* Fundo dos Cards */
+    --text-color: #f8f9fa;    /* Texto Claro */
+    --text-muted: #a6b0cf;   /* Texto secundário */
 }
 
 * {
+    box-shadow: none;
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Poppins', 'Segoe UI', Roboto, sans-serif;
 }
 
 body {
-    background-color: #f4f6f9;
-    color: #333;
-    padding-bottom: 50px;
+    background-color: var(--dark-bg);
+    color: var(--text-color);
+    padding-bottom: 60px;
 }
 
+/* CABEÇALHO COM FOTO COM TEMA BURGER ARTISAN */
 header {
-    background-color: var(--dark-color);
-    color: white;
+    background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(17, 20, 26, 1)), 
+                url('https://unsplash.com') no-repeat center center;
+    background-size: cover;
     text-align: center;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 5rem 1.5rem 3.5rem 1.5rem;
+    border-bottom: 3px solid var(--primary-color);
 }
 
 header h1 {
-    font-size: 2.5rem;
+    font-size: 3.2rem;
+    font-weight: 800;
+    color: var(--text-color);
+    text-shadow: 2px 4px 10px rgba(0, 0, 0, 0.9);
+    letter-spacing: 1px;
     margin-bottom: 0.5rem;
 }
 
-.container {
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
+header p {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 1px 2px 5px rgba(0, 0, 0, 0.8);
 }
 
-@media (min-width: 768px) {
+.container {
+    max-width: 1250px;
+    margin: -2rem auto 0 auto;
+    padding: 0 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+}
+
+@media (min-width: 992px) {
     .container {
         grid-template-columns: 1fr 1fr;
     }
 }
 
 .card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #2d3542;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
 h2 {
-    color: var(--dark-color);
-    margin-bottom: 1.2rem;
-    font-size: 1.3rem;
-    border-bottom: 2px solid var(--light-color);
-    padding-bottom: 0.5rem;
-    margin-top: 1.5rem;
-}
-
-h2:first-of-type {
-    margin-top: 0;
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    font-size: 1.4rem;
+    border-bottom: 2px solid #2d3542;
+    padding-bottom: 0.6rem;
+    font-weight: 600;
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.2rem;
 }
 
 label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--text-muted);
 }
 
 input, select {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 0.85rem;
+    background-color: #12161c;
+    border: 1px solid #323b49;
+    border-radius: 6px;
     font-size: 1rem;
+    color: white;
+    transition: all 0.3s;
 }
 
 input:focus, select:focus {
     outline: none;
-    border-color: var(--secondary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 8px rgba(255, 190, 11, 0.3);
 }
 
 .btn {
     display: inline-block;
-    padding: 0.75rem 1.2rem;
+    padding: 0.85rem 1.5rem;
     border: none;
-    border-radius: 4px;
-    color: white;
-    font-weight: 600;
+    border-radius: 6px;
+    color: #11141a;
+    font-weight: 700;
     cursor: pointer;
     width: 100%;
-    font-size: 1rem;
-    transition: background 0.2s;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    transition: all 0.3s;
 }
 
-.btn-success { background-color: var(--success-color); }
-.btn-success:hover { background-color: #21867a; }
-.btn-primary { background-color: var(--secondary-color); }
-.btn-primary:hover { background-color: #386780; }
-.btn-danger { background-color: var(--primary-color); padding: 0.4rem 0.8rem; font-size: 0.85rem;}
-.btn-danger:hover { background-color: #c92a36; }
-.btn-edit { background-color: #f4a261; padding: 0.4rem 0.8rem; font-size: 0.85rem; margin-right: 5px; color: white;}
-.btn-edit:hover { background-color: #e76f51; }
+.btn-success { background-color: var(--primary-color); }
+.btn-success:hover { background-color: #e5a900; transform: translateY(-2px); }
+.btn-primary { background-color: var(--accent-color); color: white; }
+.btn-primary:hover { background-color: #e04e05; transform: translateY(-2px); }
+.btn-danger { background-color: #ff4d4d; padding: 0.45rem 0.8rem; font-size: 0.85rem; color: white;}
+.btn-danger:hover { background-color: #ff3333; }
+.btn-edit { background-color: #3b82f6; padding: 0.45rem 0.8rem; font-size: 0.85rem; margin-right: 5px; color: white;}
+.btn-edit:hover { background-color: #2563eb; }
+
+/* ESTILIZAÇÃO DAS IMAGENS INTERNAS DAS TABELAS */
+.item-img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #323b49;
+    vertical-align: middle;
+    margin-right: 12px;
+    background-color: #12161c;
+}
 
 .table-responsive {
     overflow-x: auto;
-    margin-top: 1rem;
+    margin-top: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #2d3542;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
 }
 
 th, td {
-    padding: 0.75rem;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 1rem;
+    border-bottom: 1px solid #2d3542;
 }
 
 th {
-    background-color: #f8f9fa;
-    color: var(--dark-color);
-    font-weight: bold;
+    background-color: #14181f;
+    color: var(--primary-color);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
 }
 
 tr:hover {
-    background-color: #fdfdfd;
+    background-color: #222933;
 }
 
-
-.mensagem {
-    min-height: 1.4rem;
-    margin-top: 0.75rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-.mensagem.sucesso {
-    color: #2a9d8f;
-}
-
-.mensagem.erro {
-    color: #e63946;
-}
-
-.btn-edit,
-.btn-danger {
-    width: auto;
+.flex-cell {
+    display: flex;
+    align-items: center;
 }
