@@ -139,3 +139,24 @@ th {
 tr:hover {
     background-color: #fdfdfd;
 }
+
+
+.mensagem {
+    min-height: 1.4rem;
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.mensagem.sucesso {
+    color: #2a9d8f;
+}
+
+.mensagem.erro {
+    color: #e63946;
+}
+
+.btn-edit,
+.btn-danger {
+    width: auto;
+}

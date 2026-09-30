@@ -13,23 +13,29 @@
     </header>
 
     <main class="container">
-        <!-- SEÇÃO DE PRODUTOS -->
         <section class="card">
             <h2>Formulário: Cadastrar/Editar Lanche</h2>
+
             <form id="form-produto">
                 <input type="hidden" id="prod-id">
+
                 <div class="form-group">
                     <label for="prod-nome">Nome do Lanche:</label>
                     <input type="text" id="prod-nome" required placeholder="Ex: X-Calabresa">
                 </div>
+
                 <div class="form-group">
-                    <label for="prod-preco">Preço (R\$):</label>
-                    <input type="number" id="prod-preco" step="0.01" required placeholder="Ex: 18.50">
+                    <label for="prod-preco">Preço (R$):</label>
+                    <input type="number" id="prod-preco" min="0" step="0.01" required placeholder="Ex: 18.50">
                 </div>
+
                 <button type="submit" class="btn btn-success">Salvar no Banco</button>
             </form>
 
+            <p id="mensagem-produto" class="mensagem" aria-live="polite"></p>
+
             <h2>Tabela: `produtos`</h2>
+
             <div class="table-responsive">
                 <table id="tabela-produtos">
                     <thead>
@@ -40,29 +46,34 @@
                             <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody><!-- Inserido via JS --></tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </section>
 
-        <!-- SEÇÃO DE VENDAS -->
         <section class="card">
             <h2>Formulário: Registrar Pedido (Venda)</h2>
+
             <form id="form-venda">
                 <div class="form-group">
                     <label for="venda-produto">Selecionar Lanche (FK):</label>
                     <select id="venda-produto" required>
-                        <option value="">-- Selecione um lanche --</option>
+                        <option value="">Carregando lanches...</option>
                     </select>
                 </div>
+
                 <div class="form-group">
                     <label for="venda-qtd">Quantidade:</label>
-                    <input type="number" id="venda-qtd" min="1" value="1" required>
+                    <input type="number" id="venda-qtd" min="1" step="1" value="1" required>
                 </div>
+
                 <button type="submit" class="btn btn-primary">Registrar Venda</button>
             </form>
 
+            <p id="mensagem-venda" class="mensagem" aria-live="polite"></p>
+
             <h2>Tabela: `vendas` (Simulação de JOIN)</h2>
+
             <div class="table-responsive">
                 <table id="tabela-vendas">
                     <thead>
@@ -74,15 +85,16 @@
                             <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody><!-- Inserido via JS --></tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </section>
     </main>
 
-    <!-- Usando script type="module" para carregar o Supabase de forma limpa e moderna -->
- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase.js"></script>
-    <script src="js/script.js"></script>
+    <!-- A biblioteca deve ser carregada antes do nosso script -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- O arquivo script.js está na mesma pasta do index.html -->
+    <script src="script.js"></script>
 </body>
 </html>
