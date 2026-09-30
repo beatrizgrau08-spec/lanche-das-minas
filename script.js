@@ -1,43 +1,65 @@
-// Inicialização do "Banco de Dados" no LocalStorage
-let bancoProdutos = JSON.parse(localStorage.getItem('tb_produtos')) || [];
-let bancoVendas = JSON.parse(localStorage.getItem('tb_vendas')) || [];
+// CONFIGURAÇÃO DO SUPABASE
+// Acesse o painel do Supabase -> Settings -> API para pegar esses dados
+const SUPABASE_URL = 'https://ecwysqwvprjqrioiyooe.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_q6ADp26QiLGrPMKy2DARtg_m1sFNWpQ';
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Elementos DOM
 const formProduto = document.getElementById('form-produto');
 const formVenda = document.getElementById('form-venda');
 const selectVendaProduto = document.getElementById('venda-produto');
 
+// Variáveis globais para armazenar o estado local após puxar do banco
+let bancoProdutos = [];
+let bancoVendas = [];
+
 // --- OPERAÇÕES DA TABELA PRODUTOS (CRUD) ---
 
-formProduto.addEventListener('submit', function(e) {
+formProduto.addEventListener('submit', async function(e) {
     e.preventDefault();
     const id = document.getElementById('prod-id').value;
     const nome = document.getElementById('prod-nome').value;
     const preco = parseFloat(document.getElementById('prod-preco').value);
 
     if (id) {
-        // UPDATE: Editar produto existente
-        bancoProdutos = bancoProdutos.map(p => p.id == id ? { id: parseInt(id), nome, preco } : p);
+        // UPDATE no Supabase
+        const { error } = await supabase
+            .from('produtos')
+            .update({ nome, preco })
+            .eq('id', id);
+        
+        if (error) alert("Erro ao atualizar produto: " + error.message);
     } else {
-        // INSERT: Criar novo produto com PK auto-incremento
-        const novoId = bancoProdutos.length > 0 ? Math.max(...bancoProdutos.map(p => p.id)) + 1 : 1;
-        bancoProdutos.push({ id: novoId, nome, preco });
+        // INSERT no Supabase (O id é gerado de forma automática pelo banco)
+        const { error } = await supabase
+            .from('produtos')
+            .insert([{ nome, preco }]);
+            
+        if (error) alert("Erro ao cadastrar produto: " + error.message);
     }
 
-    salvarEAtualizar();
     formProduto.reset();
     document.getElementById('prod-id').value = '';
+    buscarDadosDoBanco(); // Recarrega os dados atualizados do banco remoto
 });
 
-function deletarProduto(id) {
-    // Validação de Integridade Referencial: impede deletar lanche se houver venda dele
-    const possuiVenda = bancoVendas.some(v => v.produtoId == id);
-    if (possuiVenda) {
-        alert("Erro de Chave Estrangeira (FK): Não é possível deletar este lanche pois ele possui vendas registradas!");
-        return;
+async function deletarProduto(id) {
+    // Tenta deletar diretamente. Se houver erro de FK (vendas vinculadas), o PostgreSQL bloqueará automático
+    const { error } = await supabase
+        .from('produtos')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        if (error.code === '23503') { // Código do Postgres para violação de chave estrangeira
+            alert("Erro de Chave Estrangeira (FK): Não é possível deletar este lanche pois ele possui vendas registradas!");
+        } else {
+            alert("Erro ao deletar: " + error.message);
+        }
+    } else {
+        buscarDadosDoBanco();
     }
-    bancoProdutos = bancoProdutos.filter(p => p.id != id);
-    salvarEAtualizar();
 }
 
 function carregarProdutoParaEdicao(id) {
@@ -51,31 +73,62 @@ function carregarProdutoParaEdicao(id) {
 
 // --- OPERAÇÕES DA TABELA VENDAS (CRUD) ---
 
-formVenda.addEventListener('submit', function(e) {
+formVenda.addEventListener('submit', async function(e) {
     e.preventDefault();
     const produtoId = parseInt(selectVendaProduto.value);
     const qtd = parseInt(document.getElementById('venda-qtd').value);
 
-    // INSERT na tabela de vendas
-    const novoIdVenda = bancoVendas.length > 0 ? Math.max(...bancoVendas.map(v => v.id)) + 1 : 1;
-    bancoVendas.push({ id: novoIdVenda, produtoId, qtd });
+    // INSERT na tabela de vendas do Supabase
+    const { error } = await supabase
+        .from('vendas')
+        .insert([{ produto_id: produtoId, quantidade: qtd }]);
 
-    salvarEAtualizar();
-    formVenda.reset();
+    if (error) {
+        alert("Erro ao registrar venda: " + error.message);
+    } else {
+        formVenda.reset();
+        buscarDadosDoBanco();
+    }
 });
 
-function deletarVenda(id) {
-    bancoVendas = bancoVendas.filter(v => v.id != id);
-    salvarEAtualizar();
+async function deletarVenda(id) {
+    const { error } = await supabase
+        .from('vendas')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Erro ao deletar venda: " + error.message);
+    } else {
+        buscarDadosDoBanco();
+    }
 }
 
-// --- RENDERIZAÇÃO DA INTERFACE (SIMULAÇÃO DE SELECT / JOIN) ---
+// --- CONSULTAS E RENDERIZAÇÃO DA INTERFACE (SELECT E INNER JOIN) ---
 
-function salvarEAtualizar() {
-    // Sincroniza dados no LocalStorage
-    localStorage.setItem('tb_produtos', JSON.stringify(bancoProdutos));
-    localStorage.setItem('tb_vendas', JSON.stringify(bancoVendas));
-    
+// Função principal que substitui a antiga "salvarEAtualizar"
+async function buscarDadosDoBanco() {
+    // 1. SELECT * FROM produtos ORDER BY id ASC
+    const { data: produtos, error: errProd } = await supabase
+        .from('produtos')
+        .select('*')
+        .order('id', { ascending: true });
+
+    // 2. SELECT * FROM vendas ORDER BY id DESC
+    const { data: vendas, error: errVendas } = await supabase
+        .from('vendas')
+        .select('*')
+        .order('id', { ascending: false });
+
+    if (errProd || errVendas) {
+        console.error("Erro ao buscar dados do Supabase:", errProd || errVendas);
+        return;
+    }
+
+    // Atualiza o estado das nossas listas na memória
+    bancoProdutos = produtos || [];
+    bancoVendas = vendas || [];
+
     renderizarProdutos();
     renderizarVendas();
     atualizarSelectProdutos();
@@ -89,7 +142,7 @@ function renderizarProdutos() {
             <tr>
                 <td><strong>${p.id}</strong></td>
                 <td>${p.nome}</td>
-                <td>R$ ${p.preco.toFixed(2)}</td>
+                <td>R$ ${parseFloat(p.preco).toFixed(2)}</td>
                 <td>
                     <button class="btn btn-edit" onclick="carregarProdutoParaEdicao(${p.id})">Editar</button>
                     <button class="btn btn-danger" onclick="deletarProduto(${p.id})">Excluir</button>
@@ -104,17 +157,17 @@ function renderizarVendas() {
     tbody.innerHTML = '';
     
     bancoVendas.forEach(v => {
-        // Simulação de INNER JOIN (Busca os dados do produto correspondente à FK)
-        const produto = bancoProdutos.find(p => p.id === v.produtoId);
+        // Resolvemos o INNER JOIN programaticamente associando a chave estrangeira v.produto_id com o lanche correspondente
+        const produto = bancoProdutos.find(p => p.id === v.produto_id);
         const nomeProduto = produto ? produto.nome : "Produto Excluído";
-        const precoProduto = produto ? produto.preco : 0;
-        const total = precoProduto * v.qtd;
+        const precoProduto = produto ? parseFloat(produto.preco) : 0;
+        const total = precoProduto * v.quantidade;
 
         tbody.innerHTML += `
             <tr>
                 <td><strong>${v.id}</strong></td>
-                <td>${nomeProduto} (ID: ${v.produtoId})</td>
-                <td>${v.qtd}x</td>
+                <td>${nomeProduto} (ID: ${v.produto_id})</td>
+                <td>${v.quantidade}x</td>
                 <td>R$ ${total.toFixed(2)}</td>
                 <td>
                     <button class="btn btn-danger" onclick="deletarVenda(${v.id})">Excluir</button>
@@ -125,12 +178,11 @@ function renderizarVendas() {
 }
 
 function atualizarSelectProdutos() {
-    // Atualiza as opções do formulário de vendas baseado nos lanches disponíveis
     selectVendaProduto.innerHTML = '<option value="">-- Selecione um lanche --</option>';
     bancoProdutos.forEach(p => {
-        selectVendaProduto.innerHTML += `<option value="${p.id}">${p.nome} - R$ ${p.preco.toFixed(2)}</option>`;
+        selectVendaProduto.innerHTML += `<option value="${p.id}">${p.nome} - R$ ${parseFloat(p.preco).toFixed(2)}</option>`;
     });
 }
 
-// Inicialização na primeira carga da página
-salvarEAtualizar();
+// Inicializa a página buscando as informações em tempo real no banco de dados
+buscarDadosDoBanco();
