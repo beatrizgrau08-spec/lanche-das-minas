@@ -1,5 +1,5 @@
 // CONFIGURAÇÃO DO SUPABASE (Com as suas chaves reais)
-const SUPABASE_URL = 'https://supabase.co';
+const SUPABASE_URL = 'https://ecwysqwvprjqrioiyooe.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_q6ADp26QiLGrPMKy2DARtg_m1sFNWpQ';
 
 // Inicialização segura usando a biblioteca global da CDN do HTML
