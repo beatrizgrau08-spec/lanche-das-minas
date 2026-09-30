@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lanche das Minas - Gerenciador de Banco de Dados</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>🍔 Lanche das Minas</h1>
+        <p>Painel de Controle e Gerenciamento de Dados</p>
+    </header>
+
+    <main class="container">
+        <!-- SEÇÃO DE PRODUTOS -->
+        <section class="card">
+            <h2>Formulário: Cadastrar/Editar Lanche</h2>
+            <form id="form-produto">
+                <input type="hidden" id="prod-id">
+                <div class="form-group">
+                    <label for="prod-nome">Nome do Lanche:</label>
+                    <input type="text" id="prod-nome" required placeholder="Ex: X-Calabresa">
+                </div>
+                <div class="form-group">
+                    <label for="prod-preco">Preço (R\$):</label>
+                    <input type="number" id="prod-preco" step="0.01" required placeholder="Ex: 18.50">
+                </div>
+                <button type="submit" class="btn btn-success">Salvar no Banco</button>
+            </form>
+
+            <h2>Tabela: `produtos`</h2>
+            <div class="table-responsive">
+                <table id="tabela-produtos">
+                    <thead>
+                        <tr>
+                            <th>ID (PK)</th>
+                            <th>Nome</th>
+                            <th>Preço</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody><!-- Inserido via JS --></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SEÇÃO DE VENDAS -->
+        <section class="card">
+            <h2>Formulário: Registrar Pedido (Venda)</h2>
+            <form id="form-venda">
+                <div class="form-group">
+                    <label for="venda-produto">Selecionar Lanche (FK):</label>
+                    <select id="venda-produto" required>
+                        <option value="">-- Selecione um lanche --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="venda-qtd">Quantidade:</label>
+                    <input type="number" id="venda-qtd" min="1" value="1" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Registrar Venda</button>
+            </form>
+
+            <h2>Tabela: `vendas` (Simulação de JOIN)</h2>
+            <div class="table-responsive">
+                <table id="tabela-vendas">
+                    <thead>
+                        <tr>
+                            <th>ID Venda (PK)</th>
+                            <th>Lanche (FK_ID)</th>
+                            <th>Qtd</th>
+                            <th>Total (Calculado)</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody><!-- Inserido via JS --></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
