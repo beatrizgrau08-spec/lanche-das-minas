@@ -1,10 +1,9 @@
-// Importação direta do Supabase JS Client como Módulo ES
-import { createClient } from 'https://jsdelivr.net'
-
-// SUAS CREDENCIAIS CONFIGURADAS
+// CONFIGURAÇÃO DO SUPABASE (Usando suas credenciais fornecidas)
 const SUPABASE_URL = 'https://ecwysqwvprjqrioiyooe.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_q6ADp26QiLGrPMKy2DARtg_m1sFNWpQ';
 
+// Inicialização segura usando a biblioteca global da CDN
+const { createClient } = supabase;
 const clientSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Elementos DOM
@@ -24,7 +23,6 @@ formProduto.addEventListener('submit', async function(e) {
     const preco = parseFloat(document.getElementById('prod-preco').value);
 
     if (id) {
-        // UPDATE no Supabase
         const { error } = await clientSupabase
             .from('produtos')
             .update({ nome, preco })
@@ -32,7 +30,6 @@ formProduto.addEventListener('submit', async function(e) {
         
         if (error) alert("Erro ao atualizar produto: " + error.message);
     } else {
-        // INSERT no Supabase
         const { error } = await clientSupabase
             .from('produtos')
             .insert([{ nome, preco }]);
@@ -71,7 +68,7 @@ function carregarProdutoParaEdicao(id) {
     }
 }
 
-// Expõe as funções para o HTML já que estamos rodando em modo Módulo ES
+// Expõe as funções para os botões do HTML funcionarem corretamente
 window.deletarProduto = deletarProduto;
 window.carregarProdutoParaEdicao = carregarProdutoParaEdicao;
 
@@ -84,7 +81,7 @@ formVenda.addEventListener('submit', async function(e) {
 
     const { error } = await clientSupabase
         .from('vendas')
-        .insert([{ produto_id: produtoId, quantidade: qtd }]);
+        .insert([{ produto_id: produtoId, quantity: qtd }]); // Altere para 'quantidade' caso sua coluna use esse nome
 
     if (error) {
         alert("Erro ao registrar venda: " + error.message);
@@ -112,21 +109,28 @@ window.deletarVenda = deletarVenda;
 // --- CONSULTAS E RENDERIZAÇÃO DA INTERFACE ---
 
 async function buscarDadosDoBanco() {
-    // Busca produtos do banco remoto
+    console.log("Tentando conectar ao Supabase...");
+    
+    // 1. Busca produtos
     const { data: produtos, error: errProd } = await clientSupabase
         .from('produtos')
         .select('*')
         .order('id', { ascending: true });
 
-    // Busca vendas do banco remoto
+    // 2. Busca vendas
     const { data: vendas, error: errVendas } = await clientSupabase
         .from('vendas')
         .select('*')
         .order('id', { ascending: false });
 
-    if (errProd || errVendas) {
-        console.error("Erro ao buscar dados do Supabase:", errProd || errVendas);
+    // CAPTURA DE ERRO EXPLICITA: Se falhar, vai subir um alerta detalhado na tela
+    if (errProd) {
+        alert(`Erro na Tabela Produtos: \nMensagem: ${errProd.message} \nCódigo: ${errProd.code}`);
+        console.error("Erro Produtos:", errProd);
         return;
+    }
+    if (errVendas) {
+        console.error("Erro Vendas:", errVendas);
     }
 
     bancoProdutos = produtos || [];
@@ -163,13 +167,16 @@ function renderizarVendas() {
         const produto = bancoProdutos.find(p => p.id === v.produto_id);
         const nomeProduto = produto ? produto.nome : "Produto Excluído";
         const precoProduto = produto ? parseFloat(produto.preco) : 0;
-        const total = precoProduto * v.quantidade;
+        
+        // Verifica se o campo do Supabase chama 'quantidade' ou 'quantity'
+        const qtdVal = v.quantidade || v.quantity || 0;
+        const total = precoProduto * qtdVal;
 
         tbody.innerHTML += `
             <tr>
                 <td><strong>${v.id}</strong></td>
                 <td>${nomeProduto} (ID: ${v.produto_id})</td>
-                <td>${v.quantidade}x</td>
+                <td>${qtdVal}x</td>
                 <td>R$ ${total.toFixed(2)}</td>
                 <td>
                     <button class="btn btn-danger" onclick="deletarVenda(${v.id})">Excluir</button>
@@ -181,10 +188,16 @@ function renderizarVendas() {
 
 function atualizarSelectProdutos() {
     selectVendaProduto.innerHTML = '<option value="">-- Selecione um lanche --</option>';
+    
+    if (bancoProdutos.length === 0) {
+        selectVendaProduto.innerHTML = '<option value="">Nenhum lanche encontrado no banco</option>';
+        return;
+    }
+
     bancoProdutos.forEach(p => {
         selectVendaProduto.innerHTML += `<option value="${p.id}">${p.nome} - R$ ${parseFloat(p.preco).toFixed(2)}</option>`;
     });
 }
 
-// Inicializa buscando os dados assim que o script carrega
+// Executa a busca assim que o site carrega
 buscarDadosDoBanco();
