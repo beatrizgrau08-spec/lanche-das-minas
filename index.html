@@ -1,124 +1,135 @@
-```html
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <meta name="description" content="Lanche das Minas - lanches, bebidas e pedidos">
     <title>Lanche das Minas 🍔</title>
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-    <header>
-        <h1>🍔 Lanche das Minas</h1>
+    <header class="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <span class="hero-badge">🍔 FEITO COM CARINHO</span>
+            <h1>Lanche das Minas</h1>
+            <p>Seu lanche favorito, caprichado do jeitinho que você gosta.</p>
+            <a href="#cardapio" class="hero-button">Ver nosso cardápio ↓</a>
+        </div>
     </header>
-
 
     <main class="container">
 
-        <!-- CARDÁPIO -->
-        <section class="card">
-
-            <h2>🍔 Nossos Lanches</h2>
-
-            <p>
-                Escolha seu lanche favorito e faça seu pedido!
-            </p>
-
-            <div id="vitrine-produtos" class="product-grid">
-
-                <!-- Os produtos do Supabase aparecerão aqui -->
-
+        <section id="cardapio" class="card cardapio-card">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">PARA MATAR A FOME</span>
+                    <h2>🍔 Nossos lanches</h2>
+                    <p>Escolha seu favorito e registre seu pedido.</p>
+                </div>
             </div>
 
+            <div id="vitrine-produtos" class="product-grid">
+                <div class="loading-card">Carregando nosso cardápio...</div>
+            </div>
         </section>
 
-
-        <!-- PEDIDO -->
         <section class="card">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">GERENCIAMENTO</span>
+                    <h2>📋 Cadastrar / editar lanche</h2>
+                </div>
+            </div>
 
-            <h2>🛒 Faça seu pedido</h2>
-
-            <form id="form-venda">
+            <form id="form-produto" class="form-grid">
+                <input type="hidden" id="prod-id">
 
                 <div class="form-group">
-
-                    <label for="venda-produto">
-                        Escolha seu lanche:
-                    </label>
-
-                    <select id="venda-produto" required>
-
-                        <option value="">
-                            Carregando lanches...
-                        </option>
-
-                    </select>
-
+                    <label for="prod-nome">Nome do Lanche</label>
+                    <input type="text" id="prod-nome" required placeholder="Ex.: X-Bacon">
                 </div>
-
 
                 <div class="form-group">
-
-                    <label for="venda-qtd">
-                        Quantidade:
-                    </label>
-
-                    <input
-                        type="number"
-                        id="venda-qtd"
-                        min="1"
-                        step="1"
-                        value="1"
-                        required
-                    >
-
+                    <label for="prod-preco">Preço (R$)</label>
+                    <input type="number" id="prod-preco" min="0" step="0.01" required placeholder="18,50">
                 </div>
 
-
-                <button
-                    type="submit"
-                    class="btn btn-primary"
-                >
-                    🍔 Fazer Pedido
-                </button>
-
+                <button type="submit" class="btn btn-success">Salvar no banco</button>
             </form>
 
+            <p id="mensagem-produto" class="mensagem" aria-live="polite"></p>
 
-            <p
-                id="mensagem-venda"
-                class="mensagem"
-                aria-live="polite"
-            ></p>
-
+            <div class="table-responsive">
+                <table id="tabela-produtos">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Lanche</th>
+                            <th>Preço</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </section>
 
+        <section class="card pedido-card">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">SEU PEDIDO</span>
+                    <h2>🥤 Registrar venda</h2>
+                    <p>Escolha um lanche e informe a quantidade.</p>
+                </div>
+            </div>
+
+            <form id="form-venda" class="form-grid pedido-form">
+                <div class="form-group">
+                    <label for="venda-produto">Escolha seu lanche</label>
+                    <select id="venda-produto" required>
+                        <option value="">Carregando lanches...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="venda-qtd">Quantidade</label>
+                    <input type="number" id="venda-qtd" min="1" step="1" value="1" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary">🍔 Registrar pedido</button>
+            </form>
+
+            <p id="mensagem-venda" class="mensagem" aria-live="polite"></p>
+
+            <h3 class="subtitulo-tabela">Histórico de vendas</h3>
+            <div class="table-responsive">
+                <table id="tabela-vendas">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Lanche</th>
+                            <th>Qtd.</th>
+                            <th>Total</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
     </main>
 
-
     <footer>
-
-        <strong>Lanche das Minas ❤️</strong>
-
-        <span>
-            Obrigado pela preferência!
-        </span>
-
+        <strong>Lanche das Minas</strong>
+        <span>Feito para deixar seu dia mais gostoso. ❤️</span>
     </footer>
 
-
-    <!-- Biblioteca do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- JavaScript do projeto -->
     <script src="script.js"></script>
-
 </body>
-
 </html>
-```
