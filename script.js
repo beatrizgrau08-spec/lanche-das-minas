@@ -1,519 +1,187 @@
 // ============================================================
-// CONFIGURAÇÃO DO SUPABASE
+// SUPABASE
 // ============================================================
-
 const SUPABASE_URL = 'https://ecwysqwvprjqrioiyooe.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_q6ADp26QiLGrPMKy2DARtg_m1sFNWpQ';
 
-if (!window.supabase) {
-    throw new Error(
-        'A biblioteca do Supabase não foi carregada. Verifique a conexão com a internet.'
-    );
-}
-
 const { createClient } = window.supabase;
-const clientSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-
-// ============================================================
-// ELEMENTOS DA PÁGINA
-// ============================================================
-
-const formProduto = document.getElementById('form-produto');
+// Elementos presentes na versão simplificada do HTML
+const vitrine = document.getElementById('vitrine-produtos');
+const selectProduto = document.getElementById('venda-produto');
 const formVenda = document.getElementById('form-venda');
-
-const selectVendaProduto = document.getElementById('venda-produto');
-const inputVendaQtd = document.getElementById('venda-qtd');
-
-const mensagemProduto = document.getElementById('mensagem-produto');
+const inputQuantidade = document.getElementById('venda-qtd');
 const mensagemVenda = document.getElementById('mensagem-venda');
 
-let bancoProdutos = [];
-let bancoVendas = [];
+let produtos = [];
 
-
-// ============================================================
-// FUNÇÕES AUXILIARES
-// ============================================================
-
-function mostrarMensagem(elemento, mensagem, erro = false) {
-    elemento.textContent = mensagem;
-    elemento.className = erro ? 'mensagem erro' : 'mensagem sucesso';
-}
-
-function limparMensagem(elemento) {
-    elemento.textContent = '';
-    elemento.className = 'mensagem';
-}
-
-function formatarPreco(preco) {
-    return Number(preco || 0).toLocaleString('pt-BR', {
+function formatarPreco(valor) {
+    return Number(valor || 0).toLocaleString('pt-BR', {
         style: 'currency',
         currency: 'BRL'
     });
 }
 
-
-// ============================================================
-// PRODUTOS - CADASTRAR / EDITAR
-// ============================================================
-
-formProduto.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    limparMensagem(mensagemProduto);
-
-    const id = document.getElementById('prod-id').value.trim();
-    const nome = document.getElementById('prod-nome').value.trim();
-    const preco = Number(document.getElementById('prod-preco').value);
-
-    if (!nome) {
-        mostrarMensagem(mensagemProduto, 'Informe o nome do lanche.', true);
-        return;
-    }
-
-    if (!Number.isFinite(preco) || preco < 0) {
-        mostrarMensagem(mensagemProduto, 'Informe um preço válido.', true);
-        return;
-    }
-
-    let resultado;
-
-    if (id) {
-        resultado = await clientSupabase
-            .from('produtos')
-            .update({
-                nome: nome,
-                preco: preco
-            })
-            .eq('id', id);
-    } else {
-        resultado = await clientSupabase
-            .from('produtos')
-            .insert([{
-                nome: nome,
-                preco: preco
-            }]);
-    }
-
-    if (resultado.error) {
-        console.error('Erro ao salvar produto:', resultado.error);
-        mostrarMensagem(
-            mensagemProduto,
-            `Erro ao salvar produto: ${resultado.error.message}`,
-            true
-        );
-        return;
-    }
-
-    formProduto.reset();
-    document.getElementById('prod-id').value = '';
-
-    mostrarMensagem(
-        mensagemProduto,
-        id ? 'Lanche atualizado com sucesso!' : 'Lanche cadastrado com sucesso!'
-    );
-
-    await buscarDadosDoBanco();
-});
-
-
-// ============================================================
-// PRODUTOS - EXCLUIR
-// ============================================================
-
-async function deletarProduto(id) {
-    const confirmar = window.confirm(
-        'Tem certeza que deseja excluir este lanche?'
-    );
-
-    if (!confirmar) return;
-
-    const { error } = await clientSupabase
-        .from('produtos')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-        console.error('Erro ao deletar produto:', error);
-
-        if (error.code === '23503') {
-            mostrarMensagem(
-                mensagemProduto,
-                'Não é possível excluir este lanche porque existem vendas relacionadas a ele.',
-                true
-            );
-        } else {
-            mostrarMensagem(
-                mensagemProduto,
-                `Erro ao excluir: ${error.message}`,
-                true
-            );
-        }
-
-        return;
-    }
-
-    mostrarMensagem(mensagemProduto, 'Lanche excluído com sucesso!');
-    await buscarDadosDoBanco();
+function mostrarMensagem(texto, erro = false) {
+    if (!mensagemVenda) return;
+    mensagemVenda.textContent = texto;
+    mensagemVenda.className = erro ? 'mensagem erro' : 'mensagem sucesso';
 }
 
-
-// ============================================================
-// PRODUTOS - EDITAR
-// ============================================================
-
-function carregarProdutoParaEdicao(id) {
-    const produto = bancoProdutos.find(
-        p => String(p.id) === String(id)
-    );
-
-    if (!produto) {
-        mostrarMensagem(
-            mensagemProduto,
-            'Produto não encontrado.',
-            true
-        );
-        return;
-    }
-
-    document.getElementById('prod-id').value = produto.id;
-    document.getElementById('prod-nome').value = produto.nome;
-    document.getElementById('prod-preco').value = produto.preco;
-
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
+// Detecta bebidas pelo nome para escolher uma foto ilustrativa.
+function ehBebida(nome) {
+    return /coca|guaraná|guarana|refrigerante|bebida|suco|água|agua|fanta|sprite|pepsi|chá|cha|limonada|milkshake/i.test(nome || '');
 }
 
-window.deletarProduto = deletarProduto;
-window.carregarProdutoParaEdicao = carregarProdutoParaEdicao;
+const fotosLanches = [
+    'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=85',
+    'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=900&q=85',
+    'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=900&q=85'
+];
 
-
-// ============================================================
-// VENDAS - REGISTRAR
-// ============================================================
-
-formVenda.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    limparMensagem(mensagemVenda);
-
-    const produtoId = Number(selectVendaProduto.value);
-    const quantidade = Number(inputVendaQtd.value);
-
-    if (!Number.isInteger(produtoId) || produtoId <= 0) {
-        mostrarMensagem(
-            mensagemVenda,
-            'Selecione um lanche válido.',
-            true
-        );
-        return;
-    }
-
-    if (!Number.isInteger(quantidade) || quantidade < 1) {
-        mostrarMensagem(
-            mensagemVenda,
-            'A quantidade deve ser um número inteiro maior que zero.',
-            true
-        );
-        return;
-    }
-
-    const { error } = await clientSupabase
-        .from('vendas')
-        .insert([{
-            produto_id: produtoId,
-            quantidade: quantidade
-        }]);
-
-    if (error) {
-        console.error('Erro ao registrar venda:', error);
-
-        mostrarMensagem(
-            mensagemVenda,
-            `Erro ao registrar venda: ${error.message}`,
-            true
-        );
-        return;
-    }
-
-    formVenda.reset();
-    inputVendaQtd.value = 1;
-
-    mostrarMensagem(
-        mensagemVenda,
-        'Venda registrada com sucesso!'
-    );
-
-    await buscarDadosDoBanco();
-});
-
-
-// ============================================================
-// VENDAS - EXCLUIR
-// ============================================================
-
-async function deletarVenda(id) {
-    const confirmar = window.confirm(
-        'Tem certeza que deseja excluir esta venda?'
-    );
-
-    if (!confirmar) return;
-
-    const { error } = await clientSupabase
-        .from('vendas')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-        console.error('Erro ao deletar venda:', error);
-
-        mostrarMensagem(
-            mensagemVenda,
-            `Erro ao excluir venda: ${error.message}`,
-            true
-        );
-
-        return;
-    }
-
-    mostrarMensagem(
-        mensagemVenda,
-        'Venda excluída com sucesso!'
-    );
-
-    await buscarDadosDoBanco();
-}
-
-window.deletarVenda = deletarVenda;
-
-
-// ============================================================
-// BUSCAR DADOS NO SUPABASE
-// ============================================================
-
-async function buscarDadosDoBanco() {
-    selectVendaProduto.innerHTML =
-        '<option value="">Carregando lanches...</option>';
-
-    // Busca os produtos
-    const resultadoProdutos = await clientSupabase
-        .from('produtos')
-        .select('id, nome, preco, criado_em')
-        .order('id', { ascending: true });
-
-    if (resultadoProdutos.error) {
-        console.error(
-            'Erro ao buscar produtos:',
-            resultadoProdutos.error
-        );
-
-        selectVendaProduto.innerHTML =
-            '<option value="">Erro ao carregar lanches</option>';
-
-        mostrarMensagem(
-            mensagemProduto,
-            `Erro ao ler a tabela produtos: ${resultadoProdutos.error.message}`,
-            true
-        );
-
-        return;
-    }
-
-    // Busca as vendas
-    const resultadoVendas = await clientSupabase
-        .from('vendas')
-        .select('id, produto_id, quantidade, criado_em')
-        .order('id', { ascending: false });
-
-    if (resultadoVendas.error) {
-        console.error(
-            'Erro ao buscar vendas:',
-            resultadoVendas.error
-        );
-
-        mostrarMensagem(
-            mensagemVenda,
-            `Erro ao ler a tabela vendas: ${resultadoVendas.error.message}`,
-            true
-        );
-
-        return;
-    }
-
-    bancoProdutos = resultadoProdutos.data || [];
-    bancoVendas = resultadoVendas.data || [];
-
-    renderizarProdutos();
-    atualizarSelectProdutos();
-    renderizarVendas();
-}
-
-
-// ============================================================
-// RENDERIZAR PRODUTOS
-// ============================================================
+const fotosBebidas = [
+    'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=85',
+    'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=900&q=85'
+];
 
 function renderizarProdutos() {
-    const tbody = document.querySelector('#tabela-produtos tbody');
-
-    tbody.innerHTML = '';
-
-    if (bancoProdutos.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="4">
-                    Nenhum lanche cadastrado.
-                </td>
-            </tr>
-        `;
+    if (!vitrine || !selectProduto) {
+        console.error('Não encontrei #vitrine-produtos ou #venda-produto no HTML.');
         return;
     }
 
-    bancoProdutos.forEach(produto => {
-        const tr = document.createElement('tr');
+    vitrine.replaceChildren();
+    selectProduto.innerHTML = '<option value="">-- Selecione um produto --</option>';
 
-        const tdId = document.createElement('td');
-        tdId.innerHTML = `<strong>${produto.id}</strong>`;
+    if (produtos.length === 0) {
+        const vazio = document.createElement('div');
+        vazio.className = 'loading-card';
+        vazio.textContent = 'Nenhum produto encontrado na tabela produtos.';
+        vitrine.appendChild(vazio);
 
-        const tdNome = document.createElement('td');
-        tdNome.textContent = produto.nome;
-
-        const tdPreco = document.createElement('td');
-        tdPreco.textContent = formatarPreco(produto.preco);
-
-        const tdAcoes = document.createElement('td');
-
-        const btnEditar = document.createElement('button');
-        btnEditar.className = 'btn btn-edit';
-        btnEditar.textContent = 'Editar';
-        btnEditar.type = 'button';
-        btnEditar.addEventListener('click', () => {
-            carregarProdutoParaEdicao(produto.id);
-        });
-
-        const btnExcluir = document.createElement('button');
-        btnExcluir.className = 'btn btn-danger';
-        btnExcluir.textContent = 'Excluir';
-        btnExcluir.type = 'button';
-        btnExcluir.addEventListener('click', () => {
-            deletarProduto(produto.id);
-        });
-
-        tdAcoes.appendChild(btnEditar);
-        tdAcoes.appendChild(btnExcluir);
-
-        tr.appendChild(tdId);
-        tr.appendChild(tdNome);
-        tr.appendChild(tdPreco);
-        tr.appendChild(tdAcoes);
-
-        tbody.appendChild(tr);
-    });
-}
-
-
-// ============================================================
-// PREENCHER SELECT DE PRODUTOS
-// ============================================================
-
-function atualizarSelectProdutos() {
-    selectVendaProduto.innerHTML = '';
-
-    const opcaoInicial = document.createElement('option');
-    opcaoInicial.value = '';
-    opcaoInicial.textContent = '-- Selecione um lanche --';
-
-    selectVendaProduto.appendChild(opcaoInicial);
-
-    if (bancoProdutos.length === 0) {
-        const opcaoVazia = document.createElement('option');
-        opcaoVazia.value = '';
-        opcaoVazia.textContent = 'Nenhum lanche cadastrado';
-        opcaoVazia.disabled = true;
-
-        selectVendaProduto.appendChild(opcaoVazia);
+        const opcao = document.createElement('option');
+        opcao.value = '';
+        opcao.textContent = 'Nenhum produto cadastrado';
+        opcao.disabled = true;
+        selectProduto.appendChild(opcao);
         return;
     }
 
-    bancoProdutos.forEach(produto => {
-        const option = document.createElement('option');
+    produtos.forEach((produto, indice) => {
+        const bebida = ehBebida(produto.nome);
+        const fotos = bebida ? fotosBebidas : fotosLanches;
 
-        // O value é exatamente o ID usado pela FK vendas.produto_id.
-        option.value = String(produto.id);
+        // Card visual do cardápio
+        const card = document.createElement('article');
+        card.className = 'product-card';
 
-        option.textContent =
-            `${produto.nome} - ${formatarPreco(produto.preco)}`;
+        const imagem = document.createElement('img');
+        imagem.className = 'product-image';
+        imagem.src = fotos[indice % fotos.length];
+        imagem.alt = produto.nome || 'Produto do cardápio';
+        imagem.loading = 'lazy';
+        imagem.onerror = () => {
+            imagem.style.display = 'none';
+        };
 
-        selectVendaProduto.appendChild(option);
+        const info = document.createElement('div');
+        info.className = 'product-info';
+
+        const tipo = document.createElement('span');
+        tipo.className = 'product-tag';
+        tipo.textContent = bebida ? '🥤 Bebida' : '🍔 Lanche';
+
+        const nome = document.createElement('h3');
+        nome.textContent = produto.nome;
+
+        const preco = document.createElement('div');
+        preco.className = 'product-price';
+        preco.textContent = formatarPreco(produto.preco);
+
+        info.append(tipo, nome, preco);
+        card.append(imagem, info);
+        vitrine.appendChild(card);
+
+        // O value precisa ser o ID do produto para preencher vendas.produto_id.
+        const opcao = document.createElement('option');
+        opcao.value = String(produto.id);
+        opcao.textContent = `${produto.nome} — ${formatarPreco(produto.preco)}`;
+        selectProduto.appendChild(opcao);
     });
 }
 
+async function carregarProdutos() {
+    if (vitrine) {
+        vitrine.innerHTML = '<div class="loading-card">Carregando cardápio...</div>';
+    }
 
-// ============================================================
-// RENDERIZAR VENDAS
-// ============================================================
+    if (selectProduto) {
+        selectProduto.innerHTML = '<option value="">Carregando produtos...</option>';
+    }
 
-function renderizarVendas() {
-    const tbody = document.querySelector('#tabela-vendas tbody');
+    const { data, error } = await supabaseClient
+        .from('produtos')
+        .select('id, nome, preco')
+        .order('id', { ascending: true });
 
-    tbody.innerHTML = '';
+    if (error) {
+        console.error('Erro ao carregar produtos do Supabase:', error);
 
-    if (bancoVendas.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5">
-                    Nenhuma venda registrada.
-                </td>
-            </tr>
-        `;
+        if (vitrine) {
+            vitrine.innerHTML = '';
+            const erro = document.createElement('div');
+            erro.className = 'loading-card';
+            erro.textContent = `Não foi possível carregar os produtos: ${error.message}`;
+            vitrine.appendChild(erro);
+        }
+
+        if (selectProduto) {
+            selectProduto.innerHTML = '<option value="">Erro ao carregar produtos</option>';
+        }
+        mostrarMensagem(`Erro ao carregar cardápio: ${error.message}`, true);
         return;
     }
 
-    bancoVendas.forEach(venda => {
-        const produto = bancoProdutos.find(
-            p => String(p.id) === String(venda.produto_id)
-        );
+    produtos = data || [];
+    renderizarProdutos();
+}
 
-        const nomeProduto = produto
-            ? produto.nome
-            : 'Produto não encontrado';
+if (formVenda) {
+    formVenda.addEventListener('submit', async (event) => {
+        event.preventDefault();
 
-        const precoProduto = produto
-            ? Number(produto.preco)
-            : 0;
+        const produtoId = Number(selectProduto.value);
+        const quantidade = Number(inputQuantidade.value);
 
-        const total =
-            precoProduto * Number(venda.quantidade);
+        if (!Number.isInteger(produtoId) || produtoId <= 0) {
+            mostrarMensagem('Selecione um lanche ou bebida.', true);
+            return;
+        }
 
-        const tr = document.createElement('tr');
+        if (!Number.isInteger(quantidade) || quantidade < 1) {
+            mostrarMensagem('Informe uma quantidade inteira maior que zero.', true);
+            return;
+        }
 
-        tr.innerHTML = `
-            <td><strong>${venda.id}</strong></td>
-            <td>${nomeProduto} (ID: ${venda.produto_id})</td>
-            <td>${venda.quantidade}x</td>
-            <td>${formatarPreco(total)}</td>
-            <td></td>
-        `;
+        const { error } = await supabaseClient
+            .from('vendas')
+            .insert([{
+                produto_id: produtoId,
+                quantidade: quantidade
+            }]);
 
-        const btnExcluir = document.createElement('button');
-        btnExcluir.className = 'btn btn-danger';
-        btnExcluir.textContent = 'Excluir';
-        btnExcluir.type = 'button';
-        btnExcluir.addEventListener('click', () => {
-            deletarVenda(venda.id);
-        });
+        if (error) {
+            console.error('Erro ao registrar venda:', error);
+            mostrarMensagem(`Não foi possível registrar o pedido: ${error.message}`, true);
+            return;
+        }
 
-        tr.lastElementChild.appendChild(btnExcluir);
-        tbody.appendChild(tr);
+        formVenda.reset();
+        if (inputQuantidade) inputQuantidade.value = 1;
+        mostrarMensagem('Pedido registrado com sucesso! ❤️');
     });
 }
 
-
-// ============================================================
-// INICIALIZAÇÃO
-// ============================================================
-
-document.addEventListener('DOMContentLoaded', () => {
-    buscarDadosDoBanco();
-});
+// Executa quando o arquivo está carregado. Não depende do formulário administrativo.
+carregarProdutos();
